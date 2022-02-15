@@ -1,24 +1,30 @@
 # See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.217.4/containers/ubuntu/.devcontainer/base.Dockerfile
 
-# [Choice] Ubuntu version (use hirsuite or bionic on local arm64/Apple Silicon): hirsute, focal, bionic
+# Download STM32 package
 ARG VARIANT="hirsute"
+ARG CUBE_MCU_NAME="F4"
+ARG CUBE_PACKAGE_VERSION="1.26.2"
+FROM mcr.microsoft.com/vscode/devcontainers/base:0-${VARIANT} as stm32cubedownloader
+ARG CUBE_MCU_NAME
+ARG CUBE_PACKAGE_VERSION
+
+RUN wget https://github.com/STMicroelectronics/STM32Cube${CUBE_MCU_NAME}/archive/refs/tags/v${CUBE_PACKAGE_VERSION}.tar.gz \
+    && tar -xf ./v${CUBE_PACKAGE_VERSION}.tar.gz -C /opt
+
+
+# [Choice] Ubuntu version (use hirsuite or bionic on local arm64/Apple Silicon): hirsute, focal, bionic
+
 FROM mcr.microsoft.com/vscode/devcontainers/base:0-${VARIANT}
+ARG CUBE_MCU_NAME
+ARG CUBE_PACKAGE_VERSION
 
 # Install packages
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends gdb-multiarch binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi cmake build-essential wget openocd stlink-tools 
 
-# STM32F4 and STM32F3 Package
-RUN  wget https://github.com/STMicroelectronics/STM32CubeF4/archive/refs/tags/v1.26.2.tar.gz \
-    && tar -xf ./v1.26.2.tar.gz -C /opt \
-    && mv /opt/STM32CubeF4-1.26.2 /opt/STM32CubeF4
+COPY --from=stm32cubedownloader /opt/STM32Cube${CUBE_MCU_NAME}-${CUBE_PACKAGE_VERSION} /opt/STM32Cube${CUBE_MCU_NAME}
 
-RUN  wget https://github.com/STMicroelectronics/STM32CubeF3/archive/refs/tags/v1.11.3.tar.gz \
-    && tar -xf ./v1.11.3.tar.gz -C /opt \
-    && mv /opt/STM32CubeF3-1.11.3 /opt/STM32CubeF3
-
-# Set location
-ENV STM32_CUBE_F4_PATH=/opt/STM32CubeF4
-ENV STM32_CUBE_F3_PATH=/opt/STM32CubeF3
+# Set location of Cube
+ENV STM32_CUBE_${CUBE_MCU_NAME}_PATH=/opt/STM32Cube${CUBE_MCU_NAME}
 
 
